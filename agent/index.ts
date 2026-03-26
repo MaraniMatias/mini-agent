@@ -3,7 +3,7 @@ import { loadSkills, type Skill } from "./src/skills.ts";
 import { buildSystem } from "./src/system.ts";
 import { extractTag, extractTool, extractSkillCall } from "./src/parsers.ts";
 import { handleTool, tools } from "./src/tools.ts";
-import { logSkill, logToolCall, logToolResult } from "./src/log.ts";
+import { logSkill, logToolCall, logToolResult, label } from "./src/log.ts";
 import { resolve } from "path";
 import { existsSync } from "fs";
 import readline from "readline";
@@ -48,7 +48,7 @@ async function runTurn(
 
   while (true) {
     const reply = await chat(messages, provider, verbose);
-    console.log("\n[model]:", reply);
+    console.log("\n" + label.model(reply));
 
     // file output
     const codeBlock = extractTag(reply, "code");
@@ -56,7 +56,7 @@ async function runTurn(
       const file = JSON.parse(codeBlock) as { filename: string; content: string };
       const dest = `${projectPath}/${file.filename}`;
       await Bun.write(dest, file.content);
-      console.log(`[written]: ${dest}`);
+      console.log(label.written(dest));
       messages.push({ role: "assistant", content: reply });
       break;
     }
@@ -69,7 +69,7 @@ async function runTurn(
         allowedTools = skill.tools ?? null;
         let body = skill.content;
         if (skill.tools) body = `[Available tools: ${skill.tools.join(", ")}]\n${body}`;
-        console.log(`\n[skill]: ${skillName}`);
+        console.log(label.skill(skillName));
         if (verbose) logSkill(skillName, allowedTools, body);
         messages.push({ role: "assistant", content: reply });
         messages.push({ role: "user", content: `<[skill_result] name="${skillName}">\n${body}\n</[skill_result]>` });
@@ -83,12 +83,12 @@ async function runTurn(
     if (tool) {
       if (allowedTools !== null && !allowedTools.includes(tool.name)) {
         const err = `Tool "${tool.name}" is not allowed in this skill context. Allowed: ${allowedTools.join(", ")}`;
-        console.log(`\n[tool blocked]: ${tool.name}`);
+        console.log(label.blocked(tool.name));
         messages.push({ role: "assistant", content: reply });
         messages.push({ role: "user", content: `<[tool_result]>${err}</[tool_result]>` });
         continue;
       }
-      console.log(`\n[tool]: ${tool.name}`);
+      console.log(label.tool(tool.name));
       if (verbose) logToolCall(tool.name, tool.params);
       const result = await handleTool(tool, projectPath);
       if (verbose) logToolResult(result);
@@ -130,7 +130,7 @@ async function runInteractive(
   console.log('Chat started. Type "exit" to quit.\n');
 
   while (true) {
-    const input = (await ask("you: ")).trim();
+    const input = (await ask(label.user(""))).trim();
     if (!input) continue;
     if (input === "exit" || input === "quit") break;
 
