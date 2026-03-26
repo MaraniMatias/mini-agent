@@ -71,4 +71,5 @@ export const label = {
   skill:   (name: string) => `${c.label}[skill]${c.reset} ${name}`,
   written: (path: string) => `${c.label}[written]${c.reset} ${path}`,
   blocked: (name: string) => `${c.label}[tool blocked]${c.reset} ${name}`,
+  error:   (msg: string)  => `${c.bold}\x1b[31merror:${c.reset} ${msg}`,
 };

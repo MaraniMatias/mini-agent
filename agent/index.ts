@@ -47,7 +47,14 @@ async function runTurn(
   let allowedTools: string[] | null = null;
 
   while (true) {
-    const reply = await chat(messages, provider, verbose);
+    let reply: string;
+    try {
+      reply = await chat(messages, provider, verbose);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("\n" + label.error(msg));
+      break;
+    }
     console.log("\n" + label.model(reply));
 
     // file output
