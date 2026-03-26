@@ -63,15 +63,16 @@ async function runTurn(
     const skillName = extractSkillCall(reply);
     if (skillName) {
       const skill = skills.find((s) => s.name === skillName);
-      allowedTools = skill?.tools ?? null;
-
-      let body = skill ? skill.content : "Skill not found.";
-      if (skill?.tools) body = `[Available tools: ${skill.tools.join(", ")}]\n${body}`;
-
-      console.log(`[skill]: ${skillName}${allowedTools ? ` (tools: ${allowedTools.join(", ")})` : ""}`);
-      messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: `<[skill_result] name="${skillName}">\n${body}\n</[skill_result]>` });
-      continue;
+      if (skill) {
+        allowedTools = skill.tools ?? null;
+        let body = skill.content;
+        if (skill.tools) body = `[Available tools: ${skill.tools.join(", ")}]\n${body}`;
+        console.log(`[skill]: ${skillName}${allowedTools ? ` (tools: ${allowedTools.join(", ")})` : ""}`);
+        messages.push({ role: "assistant", content: reply });
+        messages.push({ role: "user", content: `<[skill_result] name="${skillName}">\n${body}\n</[skill_result]>` });
+        continue;
+      }
+      // skill name not found — fall through to tool check
     }
 
     // tool call

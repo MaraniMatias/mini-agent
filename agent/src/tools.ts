@@ -5,7 +5,8 @@ function resolve(p: string, projectPath: string): string {
 export type ToolDefinition = {
   name: string;
   description: string;
-  params: Record<string, string>;
+  params: Record<string, string>; // key -> description
+  returns: string;
   execute: (params: Record<string, string>, projectPath: string) => Promise<string>;
 };
 
@@ -13,7 +14,8 @@ export const tools: ToolDefinition[] = [
   {
     name: "read_file",
     description: "Read the contents of a file",
-    params: { path: "path" },
+    params: { path: "relative or absolute file path" },
+    returns: "full file contents as plain text, or an error message if not found",
     execute: async (params, projectPath) => {
       const file = Bun.file(resolve(params.path, projectPath));
       if (!(await file.exists())) return `Error: file not found at ${params.path}`;
@@ -22,8 +24,9 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: "write_file",
-    description: "Write content to a file",
-    params: { path: "path", content: "content" },
+    description: "Write content to a file, creating it if it does not exist",
+    params: { path: "relative or absolute file path", content: "full file content to write" },
+    returns: "confirmation message with the path written",
     execute: async (params, projectPath) => {
       await Bun.write(resolve(params.path, projectPath), params.content ?? "");
       return `File written: ${params.path}`;
@@ -32,7 +35,8 @@ export const tools: ToolDefinition[] = [
   {
     name: "list_files",
     description: "List files matching a glob pattern under a directory",
-    params: { path: "dir", pattern: "glob" },
+    params: { path: "directory to search in (default: .)", pattern: "glob pattern (e.g. *.ts, **/*.md)" },
+    returns: "newline-separated list of matching file paths",
     execute: async (params, projectPath) => {
       const glob = new Bun.Glob(params.pattern ?? "*");
       const files: string[] = [];
@@ -43,7 +47,8 @@ export const tools: ToolDefinition[] = [
   {
     name: "run_command",
     description: "Run a shell command inside the project directory",
-    params: { command: "shell command" },
+    params: { command: "shell command to execute" },
+    returns: "stdout output of the command",
     execute: async (_params, _projectPath) => {
       return "Not implemented yet.";
     },
@@ -51,7 +56,8 @@ export const tools: ToolDefinition[] = [
   {
     name: "WebSearch",
     description: "Search Wikipedia and return the summary of the top matching article",
-    params: { query: "search query" },
+    params: { query: "search query string" },
+    returns: "article title, plain-text summary, and source URL",
     execute: async (params) => {
       const query = encodeURIComponent(params.query ?? "");
 

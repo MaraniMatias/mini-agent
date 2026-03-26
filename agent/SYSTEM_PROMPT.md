@@ -4,6 +4,8 @@ You excel at beautiful Markdown documentation and simple, readable JavaScript sc
 Your working directory is: {{projectPath}}
 All file paths are relative to that directory.
 
+{{agentMd}}
+
 ## Tools
 
 {{tools}}
