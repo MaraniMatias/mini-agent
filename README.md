@@ -21,14 +21,46 @@ OLLAMA_MODEL=qwen3.5:9b   # only needed for --local
 ## Usage
 
 ```bash
-# Anthropic (default)
+# Single prompt (Anthropic, default)
 bun run agent/index.ts --project ./project "Create a README.md for taco"
 
-# Ollama (local)
+# Single prompt (Ollama / local)
 bun run agent/index.ts --project ./project --local "Create a README.md for taco"
+
+# Interactive chat mode (no prompt → REPL)
+bun run agent/index.ts --project ./project
+bun run agent/index.ts --project ./project --local
+
+# Verbose output (prints full request/response for each LLM call)
+bun run agent/index.ts --project ./project --verbose "Create a README.md for taco"
+bun run agent/index.ts --project ./project --verbose   # interactive + verbose
 ```
 
 `--project` is the working directory the agent reads/writes files in. All paths the agent uses are relative to it.
+
+### Flags
+
+| Flag | Description |
+|---|---|
+| `--local` | Use Ollama instead of Anthropic |
+| `--verbose` | Print the full request (messages, roles, char counts) and response (token usage + reply preview) for every LLM call |
+
+### Interactive mode
+
+Omitting the prompt starts a REPL-style chat session. Conversation history is preserved across turns so the model remembers the full context. Type `exit` or `quit` to end the session.
+
+```
+[project]: /path/to/project
+[provider]: anthropic
+[skills loaded]: none
+Chat started. Type "exit" to quit.
+
+you: what files are in this project?
+[model]: ...
+you: now create a README based on that
+...
+you: exit
+```
 
 ## How the agent loop works
 
@@ -50,6 +82,7 @@ The loop runs until a `<[code]>` block is produced or the model returns plain te
 | `write_file` | `path`, `content` | Write content to a file |
 | `list_files` | `path`, `pattern` | List files matching a glob pattern under a directory |
 | `run_command` | `command` | Run a shell command inside the project directory |
+| `WebSearch` | `query` | Search Wikipedia and return the summary of the top matching article |
 
 ### Adding a tool
 

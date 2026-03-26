@@ -4,51 +4,48 @@ import { buildSystem } from "./src/system.ts";
 import { extractTag, extractTool, extractSkillCall } from "./src/parsers.ts";
 import { handleTool } from "./src/tools.ts";
 import { resolve } from "path";
+import readline from "readline";
 
 // Usage:
-//   bun run agent.ts --project <path> "prompt"          ← anthropic (default)
-//   bun run agent.ts --project <path> --local "prompt"  ← ollama
+//   bun run agent.ts --project <path> "prompt"                    ← single prompt
+//   bun run agent.ts --project <path>                             ← interactive chat
+//   bun run agent.ts --project <path> --local [--verbose] [...]   ← ollama
 
-function parseArgs(): { projectPath: string; prompt: string; provider: LLMProvider } {
+function parseArgs(): { projectPath: string; prompt: string | null; provider: LLMProvider; verbose: boolean } {
   const args = process.argv.slice(2);
 
   const flagIndex = args.indexOf("--project");
   if (flagIndex === -1 || !args[flagIndex + 1]) {
-    console.error("Usage: bun run agent.ts --project <path> [--local] \"<prompt>\"");
+    console.error("Usage: bun run agent.ts --project <path> [--local] [--verbose] [\"<prompt>\"]");
     process.exit(1);
   }
 
   const projectPath = resolve(args[flagIndex + 1]);
   const provider: LLMProvider = args.includes("--local") ? "ollama" : "anthropic";
+  const verbose = args.includes("--verbose");
 
-  const prompt = args
-    .filter((_, i) => i !== flagIndex && i !== flagIndex + 1)
-    .filter((a) => a !== "--local")
-    .join(" ");
+  const prompt =
+    args
+      .filter((_, i) => i !== flagIndex && i !== flagIndex + 1)
+      .filter((a) => a !== "--local" && a !== "--verbose")
+      .join(" ") || null;
 
-  if (!prompt) {
-    console.error("Error: prompt is required");
-    process.exit(1);
-  }
-
-  return { projectPath, prompt, provider };
+  return { projectPath, prompt, provider, verbose };
 }
 
-async function run(
-  userPrompt: string,
+// Runs one agentic turn starting from the last user message already in `messages`.
+// Mutates messages in place (pushes assistant replies, tool results, etc.).
+async function runTurn(
+  messages: Message[],
   skills: Skill[],
   projectPath: string,
-  provider: LLMProvider
+  provider: LLMProvider,
+  verbose: boolean
 ): Promise<void> {
-  const messages: Message[] = [
-    buildSystem(skills, projectPath),
-    { role: "user", content: userPrompt },
-  ];
-
   let allowedTools: string[] | null = null;
 
   while (true) {
-    const reply = await chat(messages, provider);
+    const reply = await chat(messages, provider, verbose);
     console.log("\n[model]:", reply);
 
     // file output
@@ -58,6 +55,7 @@ async function run(
       const dest = `${projectPath}/${file.filename}`;
       await Bun.write(dest, file.content);
       console.log(`[written]: ${dest}`);
+      messages.push({ role: "assistant", content: reply });
       break;
     }
 
@@ -94,17 +92,62 @@ async function run(
       continue;
     }
 
+    messages.push({ role: "assistant", content: reply });
     break;
   }
 }
 
+async function run(
+  userPrompt: string,
+  skills: Skill[],
+  projectPath: string,
+  provider: LLMProvider,
+  verbose: boolean
+): Promise<void> {
+  const messages: Message[] = [
+    buildSystem(skills, projectPath),
+    { role: "user", content: userPrompt },
+  ];
+  await runTurn(messages, skills, projectPath, provider, verbose);
+}
+
+async function runInteractive(
+  skills: Skill[],
+  projectPath: string,
+  provider: LLMProvider,
+  verbose: boolean
+): Promise<void> {
+  const messages: Message[] = [buildSystem(skills, projectPath)];
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q: string) => new Promise<string>((res) => rl.question(q, res));
+
+  console.log('Chat started. Type "exit" to quit.\n');
+
+  while (true) {
+    const input = (await ask("you: ")).trim();
+    if (!input) continue;
+    if (input === "exit" || input === "quit") break;
+
+    messages.push({ role: "user", content: input });
+    await runTurn(messages, skills, projectPath, provider, verbose);
+    console.log();
+  }
+
+  rl.close();
+}
+
 // --- main ---
 
-const { projectPath, prompt, provider } = parseArgs();
+const { projectPath, prompt, provider, verbose } = parseArgs();
 console.log(`[project]: ${projectPath}`);
 console.log(`[provider]: ${provider}`);
 
 const skills = loadSkills(projectPath);
 console.log(`[skills loaded]: ${skills.map((s) => s.name).join(", ") || "none"}`);
 
-await run(prompt, skills, projectPath, provider);
+if (prompt) {
+  await run(prompt, skills, projectPath, provider, verbose);
+} else {
+  await runInteractive(skills, projectPath, provider, verbose);
+}

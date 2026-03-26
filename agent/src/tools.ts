@@ -48,6 +48,31 @@ export const tools: ToolDefinition[] = [
       return "Not implemented yet.";
     },
   },
+  {
+    name: "WebSearch",
+    description: "Search Wikipedia and return the summary of the top matching article",
+    params: { query: "search query" },
+    execute: async (params) => {
+      const query = encodeURIComponent(params.query ?? "");
+
+      // 1. Find the best matching article title
+      const searchRes = await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${query}&format=json&utf8=1&srlimit=1`
+      );
+      if (!searchRes.ok) return `Wikipedia search failed: ${searchRes.status}`;
+      const searchData = await searchRes.json() as { query: { search: { title: string }[] } };
+      const hit = searchData.query?.search?.[0];
+      if (!hit) return `No Wikipedia results for: ${params.query}`;
+
+      // 2. Fetch the article summary
+      const title = encodeURIComponent(hit.title.replace(/ /g, "_"));
+      const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
+      if (!summaryRes.ok) return `Wikipedia summary fetch failed: ${summaryRes.status}`;
+      const summary = await summaryRes.json() as { title: string; extract: string; content_urls: { desktop: { page: string } } };
+
+      return `# ${summary.title}\n\n${summary.extract}\n\nSource: ${summary.content_urls?.desktop?.page ?? ""}`;
+    },
+  },
 ];
 
 export async function handleTool(
