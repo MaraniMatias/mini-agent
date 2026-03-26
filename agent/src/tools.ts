@@ -1,5 +1,14 @@
+import { stat } from "fs/promises";
+import { join } from "path";
+
 function resolve(p: string, projectPath: string): string {
   return p.startsWith("/") ? p : `${projectPath}/${p}`;
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export type ToolDefinition = {
@@ -34,14 +43,27 @@ export const tools: ToolDefinition[] = [
   },
   {
     name: "list_files",
-    description: "List files matching a glob pattern under a directory",
+    description: "List files matching a glob pattern under a directory, showing type, date, size, and name",
     params: { path: "directory to search in (default: .)", pattern: "glob pattern (e.g. *.ts, **/*.md)" },
-    returns: "newline-separated list of matching file paths",
+    returns:
+      "table with columns: type (file|dir), modified date (YYYY-MM-DD), size (human readable, - for dirs), filename (trailing / for dirs)",
     execute: async (params, projectPath) => {
+      const relBase = params.path ?? ".";
+      const basePath = resolve(relBase, projectPath);
       const glob = new Bun.Glob(params.pattern ?? "*");
-      const files: string[] = [];
-      for await (const f of glob.scan(resolve(params.path ?? ".", projectPath))) files.push(f);
-      return files.join("\n");
+      const lines: string[] = [];
+      for await (const f of glob.scan({ cwd: basePath, onlyFiles: false })) {
+        const s = await stat(join(basePath, f));
+        const isDir = s.isDirectory();
+        const type = isDir ? "dir" : "file";
+        const date = s.mtime.toISOString().slice(0, 10);
+        const size = isDir ? "-" : formatSize(s.size);
+        const relPath = relBase === "." ? `./${f}` : join(relBase, f);
+        const name = isDir ? `${relPath}/` : relPath;
+        lines.push(`${type.padEnd(6)}${date}  ${size.padStart(10)}  ${name}`);
+      }
+      if (lines.length === 0) return `No files found matching pattern "${params.pattern ?? "*"}" in "${relBase}"`;
+      return lines.join("\n");
     },
   },
   {
@@ -50,7 +72,7 @@ export const tools: ToolDefinition[] = [
     params: { command: "shell command to execute" },
     returns: "stdout output of the command",
     execute: async (_params, _projectPath) => {
-      return "Not implemented yet";
+      return "Not implemented yet. Don't use this tool yet.";
     },
   },
   {

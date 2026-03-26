@@ -47,8 +47,17 @@ async function runTurn(
   let allowedTools: string[] | null = null;
   const MAX_FAILURES = 5;
   let failures = 0;
+  let lastToolKey = "";
+  let sameCallCount = 0;
+  const MAX_SAME_CALLS = 1;
+  const MAX_ITERATIONS = 20;
+  let iterations = 0;
 
   while (true) {
+    if (++iterations > MAX_ITERATIONS) {
+      messages.push({ role: "user", content: `Stopped after ${MAX_ITERATIONS} iterations without completing.` });
+      break;
+    }
     let result: ChatResult;
     try {
       result = await chat(messages, provider, tools, verbose);
@@ -75,8 +84,19 @@ async function runTurn(
       console.log(label.tool(block.name));
       const params = Object.fromEntries(Object.entries(block.input).map(([k, v]) => [k, String(v)]));
       if (verbose) logToolCall(block.name, params);
-      const toolResult = await handleTool({ name: block.name, params }, projectPath);
+      let toolResult = await handleTool({ name: block.name, params }, projectPath);
       if (verbose) logToolResult(toolResult);
+
+      const callKey = `${block.name}|${JSON.stringify(params)}`;
+      if (callKey === lastToolKey) {
+        sameCallCount++;
+        if (sameCallCount >= MAX_SAME_CALLS) {
+          toolResult += "\n[Note: same tool+params called again — try a different approach]";
+        }
+      } else {
+        lastToolKey = callKey;
+        sameCallCount = 0;
+      }
 
       messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: block.id, content: toolResult }] });
 
@@ -135,8 +155,20 @@ async function runTurn(
       }
       console.log(label.tool(tool.name));
       if (verbose) logToolCall(tool.name, tool.params);
-      const toolResult = await handleTool(tool, projectPath);
+      let toolResult = await handleTool(tool, projectPath);
       if (verbose) logToolResult(toolResult);
+
+      const callKey = `${tool.name}|${JSON.stringify(tool.params)}`;
+      if (callKey === lastToolKey) {
+        sameCallCount++;
+        if (sameCallCount >= MAX_SAME_CALLS) {
+          toolResult += "\n[Note: same tool+params called again — try a different approach]";
+        }
+      } else {
+        lastToolKey = callKey;
+        sameCallCount = 0;
+      }
+
       messages.push({ role: "assistant", content: reply });
       messages.push({ role: "user", content: `<[tool_result]>${toolResult}</[tool_result]>` });
 

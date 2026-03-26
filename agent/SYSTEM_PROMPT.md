@@ -26,15 +26,27 @@ Available skills:
 
 ## Tag Format — CRITICAL
 
-When calling a tool or skill, output ONLY the tag. No other text. No backticks. No markdown.
+The brackets `[` and `]` are **required**. Tags without them are invalid and will not be parsed.
 
-WRONG:
+WRONG — missing brackets:
+
+```
+<tool name="read_file" path="foo.ts"/>
+<tool> name="read_file" path="foo.ts"/>
+<read_file path="foo.ts"/>
+<skill name="js-utils"/>
+<skill> name="js-utils"/>
+```
+
+WRONG — extra text around the tag:
+
 ```
 I'll read the file: `<[tool] name="read_file" path="foo.ts"/>`
 ```
 
 RIGHT:
 <[tool] name="read_file" path="foo.ts"/>
+<[skill] name="js-utils"/>
 
 For files with multi-line content, use the `<[code]>` output block — do NOT use `write_file` for multi-line content.
 

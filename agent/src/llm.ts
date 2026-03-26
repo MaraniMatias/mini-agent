@@ -2,10 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { logRequest, logResponse } from "./log.ts";
 import type { ToolDefinition } from "./tools.ts";
 
-export type ToolUseBlock    = { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
+export type ToolUseBlock = { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
 export type ToolResultBlock = { type: "tool_result"; tool_use_id: string; content: string };
-export type TextBlock       = { type: "text"; text: string };
-export type ContentBlock    = TextBlock | ToolUseBlock | ToolResultBlock;
+export type TextBlock = { type: "text"; text: string };
+export type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock;
 
 export type Message = {
   role: "system" | "user" | "assistant";
@@ -14,17 +14,13 @@ export type Message = {
 
 export type LLMProvider = "anthropic" | "ollama";
 
-export type ChatResult =
-  | { type: "text"; text: string }
-  | { type: "tool_use"; block: ToolUseBlock };
+export type ChatResult = { type: "text"; text: string } | { type: "tool_use"; block: ToolUseBlock };
 
 export function contentAsText(content: string | ContentBlock[]): string {
   if (typeof content === "string") return content;
   return content
     .map((b) =>
-      b.type === "text" ? b.text :
-      b.type === "tool_use" ? `[tool_use: ${b.name}]` :
-      `[tool_result: ${b.content}]`,
+      b.type === "text" ? b.text : b.type === "tool_use" ? `[tool_use: ${b.name}]` : `[tool_result: ${b.content}]`,
     )
     .join("\n");
 }
@@ -83,7 +79,12 @@ async function chatAnthropic(messages: Message[], toolDefs: ToolDefinition[], ve
   if (toolBlock?.type === "tool_use") {
     return {
       type: "tool_use",
-      block: { type: "tool_use", id: toolBlock.id, name: toolBlock.name, input: toolBlock.input as Record<string, unknown> },
+      block: {
+        type: "tool_use",
+        id: toolBlock.id,
+        name: toolBlock.name,
+        input: toolBlock.input as Record<string, unknown>,
+      },
     };
   }
 

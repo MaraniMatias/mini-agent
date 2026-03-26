@@ -26,10 +26,7 @@ describe("read_file", () => {
 });
 
 test("write_file writes and confirms", async () => {
-  const result = await handleTool(
-    { name: "write_file", params: { path: "out.txt", content: "written!" } },
-    tmpDir,
-  );
+  const result = await handleTool({ name: "write_file", params: { path: "out.txt", content: "written!" } }, tmpDir);
   expect(result).toBe("File written: out.txt");
   expect(await Bun.file(`${tmpDir}/out.txt`).text()).toBe("written!");
 });
@@ -38,41 +35,63 @@ test("list_files returns matching filenames", async () => {
   await Bun.write(`${tmpDir}/a.ts`, "");
   await Bun.write(`${tmpDir}/b.ts`, "");
   await Bun.write(`${tmpDir}/c.md`, "");
-  const result = await handleTool(
-    { name: "list_files", params: { path: ".", pattern: "*.ts" } },
-    tmpDir,
-  );
-  const files = result.split("\n").filter(Boolean).sort();
-  expect(files).toContain("a.ts");
-  expect(files).toContain("b.ts");
-  expect(files).not.toContain("c.md");
+  const result = await handleTool({ name: "list_files", params: { path: ".", pattern: "*.ts" } }, tmpDir);
+  const lines = result.split("\n").filter(Boolean);
+  expect(lines.some((l) => l.includes("a.ts"))).toBe(true);
+  expect(lines.some((l) => l.includes("b.ts"))).toBe(true);
+  expect(lines.every((l) => !l.includes("c.md"))).toBe(true);
 });
 
 test("list_files with **/* returns all files including subdirs", async () => {
   await Bun.write(`${tmpDir}/root.txt`, "");
   await Bun.write(`${tmpDir}/sub/deep.ts`, "");
-  const result = await handleTool(
-    { name: "list_files", params: { path: ".", pattern: "**/*" } },
-    tmpDir,
-  );
-  const files = result.split("\n").filter(Boolean);
-  expect(files).toContain("root.txt");
-  expect(files).toContain("sub/deep.ts");
+  const result = await handleTool({ name: "list_files", params: { path: ".", pattern: "**/*" } }, tmpDir);
+  const lines = result.split("\n").filter(Boolean);
+  expect(lines.some((l) => l.includes("root.txt"))).toBe(true);
+  expect(lines.some((l) => l.includes("sub/deep.ts"))).toBe(true);
+});
+
+test("list_files returns message when no files match", async () => {
+  const result = await handleTool({ name: "list_files", params: { path: ".", pattern: "*.nope" } }, tmpDir);
+  expect(result).toBe(`No files found matching pattern "*.nope" in "."`);
+});
+
+test("list_files row format includes type, date, size, and prefixed name", async () => {
+  await Bun.write(`${tmpDir}/fmt.ts`, "hello");
+  const result = await handleTool({ name: "list_files", params: { path: ".", pattern: "fmt.ts" } }, tmpDir);
+  const line = result.split("\n").find((l) => l.includes("fmt.ts"))!;
+  expect(line).toMatch(/^file  /);
+  expect(line).toMatch(/\d{4}-\d{2}-\d{2}/);
+  expect(line).toMatch(/\d/); // size
+  expect(line).toContain("./fmt.ts");
+});
+
+test("list_files shows directories with dir type and trailing slash", async () => {
+  await Bun.write(`${tmpDir}/subdir/file.ts`, "");
+  const result = await handleTool({ name: "list_files", params: { path: ".", pattern: "**/*" } }, tmpDir);
+  const dirLine = result.split("\n").find((l) => l.endsWith("subdir/"));
+  expect(dirLine).toBeDefined();
+  expect(dirLine).toMatch(/^dir   /);
+});
+
+test("list_files with non-dot path prefixes filenames correctly", async () => {
+  await Bun.write(`${tmpDir}/sub/nested.ts`, "");
+  const result = await handleTool({ name: "list_files", params: { path: "sub", pattern: "*.ts" } }, tmpDir);
+  const lines = result.split("\n").filter(Boolean);
+  expect(lines.some((l) => l.includes("sub/nested.ts"))).toBe(true);
+  expect(lines.every((l) => !l.includes("./nested.ts"))).toBe(true);
 });
 
 test("run_command returns not implemented", async () => {
   const result = await handleTool({ name: "run_command", params: { command: "echo hi" } }, tmpDir);
-  expect(result).toBe("Not implemented yet");
+  expect(result).toBe("Not implemented yet. Don't use this tool yet.");
 });
 
 describe("web_search", () => {
   test("success returns formatted article", async () => {
     const mockFetch = mock(async (url: string) => {
       if (url.includes("list=search")) {
-        return new Response(
-          JSON.stringify({ query: { search: [{ title: "Bun (software)" }] } }),
-          { status: 200 },
-        );
+        return new Response(JSON.stringify({ query: { search: [{ title: "Bun (software)" }] } }), { status: 200 });
       }
       return new Response(
         JSON.stringify({
@@ -97,10 +116,7 @@ describe("web_search", () => {
 
   test("no results returns message", async () => {
     const mockFetch = mock(async (_url: string) => {
-      return new Response(
-        JSON.stringify({ query: { search: [] } }),
-        { status: 200 },
-      );
+      return new Response(JSON.stringify({ query: { search: [] } }), { status: 200 });
     });
 
     const origFetch = globalThis.fetch;
