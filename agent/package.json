@@ -1,0 +1,12 @@
+{
+  "name": "agent",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "latest"
+  }
+}
+
