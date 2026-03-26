@@ -2,8 +2,10 @@ import { chat, type Message, type LLMProvider } from "./src/llm.ts";
 import { loadSkills, type Skill } from "./src/skills.ts";
 import { buildSystem } from "./src/system.ts";
 import { extractTag, extractTool, extractSkillCall } from "./src/parsers.ts";
-import { handleTool } from "./src/tools.ts";
+import { handleTool, tools } from "./src/tools.ts";
+import { logSkill, logToolCall, logToolResult } from "./src/log.ts";
 import { resolve } from "path";
+import { existsSync } from "fs";
 import readline from "readline";
 
 // Usage:
@@ -67,7 +69,8 @@ async function runTurn(
         allowedTools = skill.tools ?? null;
         let body = skill.content;
         if (skill.tools) body = `[Available tools: ${skill.tools.join(", ")}]\n${body}`;
-        console.log(`[skill]: ${skillName}${allowedTools ? ` (tools: ${allowedTools.join(", ")})` : ""}`);
+        console.log(`\n[skill]: ${skillName}`);
+        if (verbose) logSkill(skillName, allowedTools, body);
         messages.push({ role: "assistant", content: reply });
         messages.push({ role: "user", content: `<[skill_result] name="${skillName}">\n${body}\n</[skill_result]>` });
         continue;
@@ -80,14 +83,15 @@ async function runTurn(
     if (tool) {
       if (allowedTools !== null && !allowedTools.includes(tool.name)) {
         const err = `Tool "${tool.name}" is not allowed in this skill context. Allowed: ${allowedTools.join(", ")}`;
-        console.log(`[tool blocked]: ${tool.name}`);
+        console.log(`\n[tool blocked]: ${tool.name}`);
         messages.push({ role: "assistant", content: reply });
         messages.push({ role: "user", content: `<[tool_result]>${err}</[tool_result]>` });
         continue;
       }
-      console.log(`[tool]: ${tool.name}`, tool.params);
+      console.log(`\n[tool]: ${tool.name}`);
+      if (verbose) logToolCall(tool.name, tool.params);
       const result = await handleTool(tool, projectPath);
-      console.log(`[tool result]: ${result}`);
+      if (verbose) logToolResult(result);
       messages.push({ role: "assistant", content: reply });
       messages.push({ role: "user", content: `<[tool_result]>${result}</[tool_result]>` });
       continue;
@@ -141,11 +145,16 @@ async function runInteractive(
 // --- main ---
 
 const { projectPath, prompt, provider, verbose } = parseArgs();
+const model = provider === "ollama" ? process.env.OLLAMA_MODEL : process.env.ANTHROPIC_MODEL;
 console.log(`[project]: ${projectPath}`);
-console.log(`[provider]: ${provider}`);
+console.log(`[provider]: ${provider} ${model}`);
+console.log(`[tools]: ${tools.map((t) => t.name).join(", ")}`);
 
 const skills = loadSkills(projectPath);
-console.log(`[skills loaded]: ${skills.map((s) => s.name).join(", ") || "none"}`);
+console.log(`[skills]: ${skills.map((s) => s.name).join(", ") || "none"}`);
+
+const agentMdExists = existsSync(`${projectPath}/AGENT.md`);
+console.log(`[AGENT.md]: ${agentMdExists ? "found" : "not found"}`);
 
 if (prompt) {
   await run(prompt, skills, projectPath, provider, verbose);
