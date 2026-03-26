@@ -7,7 +7,7 @@ export function extractTag(text: string, tagName: string): string | null {
 }
 
 export function extractTool(text: string): { name: string; params: Record<string, string> } | null {
-  const regex = /<\[tool\] name="([^"]+)"([^/]*)\/>/;
+  const regex = /<\[?tool\]? name="([^"]+)"([^/]*)\/>/;
   const match = text.match(regex);
   if (!match) return null;
 
