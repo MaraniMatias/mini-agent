@@ -3,7 +3,10 @@
     "allow": [
       "Bash(find /Users/matiasmarani/Trabajo/mini-agent -not -path */node_modules/* -not -path */.git/* -type d)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(bun test:*)",
+      "Bash(node -e \":*)",
+      "Bash(bun -e \":*)"
     ]
   }
 }
