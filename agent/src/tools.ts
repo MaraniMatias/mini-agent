@@ -49,8 +49,27 @@ export const tools: ToolDefinition[] = [
     description: "Run a shell command inside the project directory",
     params: { command: "shell command to execute" },
     returns: "stdout output of the command",
-    execute: async (_params, _projectPath) => {
-      return "Not implemented yet.";
+    execute: async (params, projectPath) => {
+      const proc = Bun.spawn(["sh", "-c", params.command ?? ""], {
+        cwd: projectPath,
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const timer = setTimeout(() => proc.kill(), 30_000);
+      try {
+        const [out, err] = await Promise.all([
+          new Response(proc.stdout).text(),
+          new Response(proc.stderr).text(),
+        ]);
+        await proc.exited;
+        clearTimeout(timer);
+        const code = proc.exitCode ?? 0;
+        const combined = [out, err ? `[stderr]: ${err}` : ""].filter(Boolean).join("\n");
+        const truncated = combined.length > 8000 ? combined.slice(0, 8000) + "\n...[truncated]" : combined;
+        return code === 0 ? (truncated || "(no output)") : `[exit ${code}]\n${truncated}`;
+      } catch (e) {
+        return `Error: ${e instanceof Error ? e.message : String(e)}`;
+      }
     },
   },
   {

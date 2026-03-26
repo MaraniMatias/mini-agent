@@ -1,48 +1,105 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { logRequest, logResponse } from "./log.ts";
+import type { ToolDefinition } from "./tools.ts";
 
-export type Message = { role: "system" | "user" | "assistant"; content: string };
+export type ToolUseBlock    = { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
+export type ToolResultBlock = { type: "tool_result"; tool_use_id: string; content: string };
+export type TextBlock       = { type: "text"; text: string };
+export type ContentBlock    = TextBlock | ToolUseBlock | ToolResultBlock;
+
+export type Message = {
+  role: "system" | "user" | "assistant";
+  content: string | ContentBlock[];
+};
+
 export type LLMProvider = "anthropic" | "ollama";
+
+export type ChatResult =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; block: ToolUseBlock };
+
+export function contentAsText(content: string | ContentBlock[]): string {
+  if (typeof content === "string") return content;
+  return content
+    .map((b) =>
+      b.type === "text" ? b.text :
+      b.type === "tool_use" ? `[tool_use: ${b.name}]` :
+      `[tool_result: ${b.content}]`,
+    )
+    .join("\n");
+}
 
 const anthropic = new Anthropic();
 
-async function chatAnthropic(messages: Message[], verbose = false): Promise<string> {
-  const system = messages.find((m) => m.role === "system")?.content ?? "";
-  const rest = messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content }));
+function toAnthropicTool(t: ToolDefinition): Anthropic.Tool {
+  return {
+    name: t.name,
+    description: t.description,
+    input_schema: {
+      type: "object" as const,
+      properties: Object.fromEntries(
+        Object.entries(t.params).map(([k, desc]) => [k, { type: "string", description: desc }]),
+      ),
+      required: Object.keys(t.params),
+    },
+  };
+}
+
+async function chatAnthropic(messages: Message[], toolDefs: ToolDefinition[], verbose = false): Promise<ChatResult> {
+  const system = messages.find((m) => m.role === "system");
+  const systemText = system ? contentAsText(system.content) : "";
+  const rest = messages
+    .filter((m) => m.role !== "system")
+    .map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content as any,
+    }));
 
   if (verbose) logRequest(messages);
 
   const response = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL,
     max_tokens: 4096,
-    system,
+    system: systemText,
     messages: rest,
+    ...(toolDefs.length > 0 ? { tools: toolDefs.map(toAnthropicTool) } : {}),
   });
 
   for (const block of response.content) {
     if (block.type === "thinking") console.log("\n[thinking]:", block.thinking);
   }
 
-  const textBlock = response.content.find((b) => b.type === "text");
-  if (!textBlock || textBlock.type !== "text") throw new Error("No text block in Anthropic response");
-
   if (verbose) {
+    const displayText = response.content
+      .map((b) => (b.type === "text" ? b.text : b.type === "tool_use" ? `[tool_use: ${b.name}]` : ""))
+      .join("\n");
     logResponse(
       `input_tokens: ${response.usage.input_tokens}  output_tokens: ${response.usage.output_tokens}`,
-      textBlock.text,
+      displayText,
     );
   }
 
-  return textBlock.text;
+  const toolBlock = response.content.find((b) => b.type === "tool_use");
+  if (toolBlock?.type === "tool_use") {
+    return {
+      type: "tool_use",
+      block: { type: "tool_use", id: toolBlock.id, name: toolBlock.name, input: toolBlock.input as Record<string, unknown> },
+    };
+  }
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  return { type: "text", text: textBlock?.type === "text" ? textBlock.text : "" };
 }
 
-async function chatOllama(messages: Message[], verbose = false): Promise<string> {
+async function chatOllama(messages: Message[], verbose = false): Promise<ChatResult> {
+  const serialized = messages.map((m) => ({ role: m.role, content: contentAsText(m.content) }));
+
   if (verbose) logRequest(messages);
 
   const res = await fetch("http://localhost:11434/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: process.env.OLLAMA_MODEL, messages, stream: false }),
+    body: JSON.stringify({ model: process.env.OLLAMA_MODEL, messages: serialized, stream: false }),
   });
 
   const data = await res.json();
@@ -57,13 +114,19 @@ async function chatOllama(messages: Message[], verbose = false): Promise<string>
   const thinkMatch = raw.match(/<think>([\s\S]*?)<\/think>/);
   if (thinkMatch) console.log("\n[thinking]:", thinkMatch[1].trim());
 
-  return raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  const text = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+  return { type: "text", text };
 }
 
-export async function chat(messages: Message[], provider: LLMProvider, verbose = false): Promise<string> {
+export async function chat(
+  messages: Message[],
+  provider: LLMProvider,
+  toolDefs: ToolDefinition[],
+  verbose = false,
+): Promise<ChatResult> {
   switch (provider) {
     case "anthropic":
-      return chatAnthropic(messages, verbose);
+      return chatAnthropic(messages, toolDefs, verbose);
     case "ollama":
       return chatOllama(messages, verbose);
   }

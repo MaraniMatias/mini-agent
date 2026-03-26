@@ -24,6 +24,20 @@ After invoking a skill you will receive its instructions and can proceed accordi
 Available skills:
 {{skills}}
 
+## Tag Format — CRITICAL
+
+When calling a tool or skill, output ONLY the tag. No other text. No backticks. No markdown.
+
+WRONG:
+```
+I'll read the file: `<[tool] name="read_file" path="foo.ts"/>`
+```
+
+RIGHT:
+<[tool] name="read_file" path="foo.ts"/>
+
+For files with multi-line content, use the `<[code]>` output block — do NOT use `write_file` for multi-line content.
+
 ## Behavior
 
 - If you need a tool or skill: emit only that tag, nothing else.

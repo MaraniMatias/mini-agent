@@ -1,4 +1,4 @@
-import { chat, type Message, type LLMProvider } from "./src/llm.ts";
+import { chat, type Message, type ChatResult, type LLMProvider } from "./src/llm.ts";
 import { loadSkills, type Skill } from "./src/skills.ts";
 import { buildSystem } from "./src/system.ts";
 import { extractTag, extractTool, extractSkillCall } from "./src/parsers.ts";
@@ -45,16 +45,54 @@ async function runTurn(
   verbose: boolean,
 ): Promise<void> {
   let allowedTools: string[] | null = null;
+  const MAX_FAILURES = 5;
+  let failures = 0;
 
   while (true) {
-    let reply: string;
+    let result: ChatResult;
     try {
-      reply = await chat(messages, provider, verbose);
+      result = await chat(messages, provider, tools, verbose);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("\n" + label.error(msg));
       break;
     }
+
+    // ── Anthropic native tool use path ──────────────────────────────────────
+    if (result.type === "tool_use") {
+      const { block } = result;
+
+      // Push assistant message with the tool_use block
+      messages.push({ role: "assistant", content: [block] });
+
+      if (allowedTools !== null && !allowedTools.includes(block.name)) {
+        const err = `Tool "${block.name}" is not allowed in this skill context. Allowed: ${allowedTools.join(", ")}`;
+        console.log(label.blocked(block.name));
+        messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: block.id, content: err }] });
+        continue;
+      }
+
+      console.log(label.tool(block.name));
+      const params = Object.fromEntries(Object.entries(block.input).map(([k, v]) => [k, String(v)]));
+      if (verbose) logToolCall(block.name, params);
+      const toolResult = await handleTool({ name: block.name, params }, projectPath);
+      if (verbose) logToolResult(toolResult);
+
+      messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: block.id, content: toolResult }] });
+
+      if (toolResult.startsWith("Error:") || toolResult.startsWith("Unknown tool:")) {
+        if (++failures >= MAX_FAILURES) {
+          messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
+          break;
+        }
+      } else {
+        failures = 0;
+      }
+      continue;
+    }
+
+    // ── Text path (both providers) ───────────────────────────────────────────
+    const reply = result.text;
     console.log("\n" + label.model(reply));
 
     // file output
@@ -85,7 +123,7 @@ async function runTurn(
       // skill name not found — fall through to tool check
     }
 
-    // tool call
+    // tool call (Ollama text-parsed path)
     const tool = extractTool(reply);
     if (tool) {
       if (allowedTools !== null && !allowedTools.includes(tool.name)) {
@@ -97,10 +135,19 @@ async function runTurn(
       }
       console.log(label.tool(tool.name));
       if (verbose) logToolCall(tool.name, tool.params);
-      const result = await handleTool(tool, projectPath);
-      if (verbose) logToolResult(result);
+      const toolResult = await handleTool(tool, projectPath);
+      if (verbose) logToolResult(toolResult);
       messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: `<[tool_result]>${result}</[tool_result]>` });
+      messages.push({ role: "user", content: `<[tool_result]>${toolResult}</[tool_result]>` });
+
+      if (toolResult.startsWith("Error:") || toolResult.startsWith("Unknown tool:")) {
+        if (++failures >= MAX_FAILURES) {
+          messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
+          break;
+        }
+      } else {
+        failures = 0;
+      }
       continue;
     }
 
@@ -116,7 +163,7 @@ async function run(
   provider: LLMProvider,
   verbose: boolean,
 ): Promise<void> {
-  const messages: Message[] = [buildSystem(skills, projectPath), { role: "user", content: userPrompt }];
+  const messages: Message[] = [buildSystem(skills, projectPath, provider), { role: "user", content: userPrompt }];
   await runTurn(messages, skills, projectPath, provider, verbose);
 }
 
@@ -126,7 +173,7 @@ async function runInteractive(
   provider: LLMProvider,
   verbose: boolean,
 ): Promise<void> {
-  const messages: Message[] = [buildSystem(skills, projectPath)];
+  const messages: Message[] = [buildSystem(skills, projectPath, provider)];
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q: string) => new Promise<string>((res) => rl.question(q, res));

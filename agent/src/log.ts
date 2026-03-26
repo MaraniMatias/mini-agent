@@ -1,4 +1,4 @@
-import type { Message } from "./llm.ts";
+import { contentAsText, type Message } from "./llm.ts";
 
 const c = {
   reset: "\x1b[0m",
@@ -32,7 +32,8 @@ export function logRequest(messages: Message[]): void {
     "payload",
     messages.flatMap((m, i) => {
       const color = roleColor(m.role);
-      return [`${color}[${i}] ${m.role}${c.reset}${c.dim} (${m.content.length} chars)${c.reset}`, m.content, ""];
+      const text = contentAsText(m.content);
+      return [`${color}[${i}] ${m.role}${c.reset}${c.dim} (${text.length} chars)${c.reset}`, text, ""];
     }),
   );
 }
