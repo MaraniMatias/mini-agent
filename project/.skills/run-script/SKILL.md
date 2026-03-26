@@ -4,7 +4,6 @@ description: "Runs a shell command in the project directory and uses the output 
 tools:
   - run_command
   - read_file
-  - write_file
 ---
 
 When you need to execute something in the project, use the run_command tool.

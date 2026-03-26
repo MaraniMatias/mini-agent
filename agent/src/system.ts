@@ -20,9 +20,7 @@ export function buildSystem(skills: Skill[], projectPath: string): Message {
     .join("\n\n");
 
   const skillsSection =
-    skills.length === 0
-      ? "No skills available."
-      : skills.map((s) => `- **${s.name}**: ${s.description}`).join("\n");
+    skills.length === 0 ? "No skills available." : skills.map((s) => `- **${s.name}**: ${s.description}`).join("\n");
 
   const agentMdPath = `${projectPath}/AGENT.md`;
   const agentMd = existsSync(agentMdPath)

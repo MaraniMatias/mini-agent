@@ -40,9 +40,9 @@ bun run agent/index.ts --project ./project --verbose   # interactive + verbose
 
 ### Flags
 
-| Flag | Description |
-|---|---|
-| `--local` | Use Ollama instead of Anthropic |
+| Flag        | Description                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------- |
+| `--local`   | Use Ollama instead of Anthropic                                                                                     |
 | `--verbose` | Print the full request (messages, roles, char counts) and response (token usage + reply preview) for every LLM call |
 
 ### Interactive mode
@@ -66,23 +66,23 @@ you: exit
 
 Each turn the model emits exactly one of:
 
-| Output | What happens |
-|---|---|
-| `<[tool] name="..." .../>` | Tool executes, result fed back as `<[tool_result]>` |
-| `<[skill] name="..."/>` | Skill content injected as `<[skill_result]>` |
-| `<[code]>{"filename":..., "content":...}</[code]>` | File written to disk, loop ends |
+| Output                                             | What happens                                        |
+| -------------------------------------------------- | --------------------------------------------------- |
+| `<[tool] name="..." .../>`                         | Tool executes, result fed back as `<[tool_result]>` |
+| `<[skill] name="..."/>`                            | Skill content injected as `<[skill_result]>`        |
+| `<[code]>{"filename":..., "content":...}</[code]>` | File written to disk, loop ends                     |
 
 The loop runs until a `<[code]>` block is produced or the model returns plain text with no recognized tag.
 
 ## Built-in tools
 
-| Name | Params | Description |
-|---|---|---|
-| `read_file` | `path` | Read the contents of a file |
-| `write_file` | `path`, `content` | Write content to a file |
-| `list_files` | `path`, `pattern` | List files matching a glob pattern under a directory |
-| `run_command` | `command` | Run a shell command inside the project directory |
-| `WebSearch` | `query` | Search Wikipedia and return the summary of the top matching article |
+| Name          | Params            | Description                                                         |
+| ------------- | ----------------- | ------------------------------------------------------------------- |
+| `read_file`   | `path`            | Read the contents of a file                                         |
+| `write_file`  | `path`, `content` | Write content to a file                                             |
+| `list_files`  | `path`, `pattern` | List files matching a glob pattern under a directory                |
+| `run_command` | `command`         | Run a shell command inside the project directory                    |
+| `WebSearch`   | `query`           | Search Wikipedia and return the summary of the top matching article |
 
 ### Adding a tool
 
@@ -128,12 +128,12 @@ Always use ATX headings. Tables for comparisons. Fenced code blocks with languag
 Keep tone technical but approachable. Include a TL;DR at the top.
 ```
 
-| Field | Required | Description |
-|---|---|---|
-| `name` | yes | Identifier the model uses to call the skill |
-| `description` | yes | Shown in the system prompt so the model knows when to use it |
-| `tools` | no | Array of tools available while this skill is active. If omitted, all tools are allowed |
-| Body | yes | Injected verbatim as context when the skill is invoked |
+| Field         | Required | Description                                                                            |
+| ------------- | -------- | -------------------------------------------------------------------------------------- |
+| `name`        | yes      | Identifier the model uses to call the skill                                            |
+| `description` | yes      | Shown in the system prompt so the model knows when to use it                           |
+| `tools`       | no       | Array of tools available while this skill is active. If omitted, all tools are allowed |
+| Body          | yes      | Injected verbatim as context when the skill is invoked                                 |
 
 **`tools` — restricting tool access per skill**
 

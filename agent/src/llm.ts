@@ -29,7 +29,7 @@ async function chatAnthropic(messages: Message[], verbose = false): Promise<stri
   if (verbose) {
     logResponse(
       `input_tokens: ${response.usage.input_tokens}  output_tokens: ${response.usage.output_tokens}`,
-      textBlock.text
+      textBlock.text,
     );
   }
 
@@ -51,10 +51,7 @@ async function chatOllama(messages: Message[], verbose = false): Promise<string>
   const raw: string = data.message.content;
 
   if (verbose) {
-    logResponse(
-      `eval_count: ${data.eval_count ?? "?"}  prompt_eval_count: ${data.prompt_eval_count ?? "?"}`,
-      raw
-    );
+    logResponse(`eval_count: ${data.eval_count ?? "?"}  prompt_eval_count: ${data.prompt_eval_count ?? "?"}`, raw);
   }
 
   const thinkMatch = raw.match(/<think>([\s\S]*?)<\/think>/);

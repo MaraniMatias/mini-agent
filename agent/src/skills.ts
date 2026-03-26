@@ -61,7 +61,10 @@ function parseYamlArray(frontmatter: string, key: string): string[] | undefined 
 
   const inlineMatch = lines[keyIndex].match(/:\s*\[([^\]]*)\]/);
   if (inlineMatch) {
-    return inlineMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
+    return inlineMatch[1]
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
 
   const items: string[] = [];

@@ -18,7 +18,7 @@ function parseArgs(): { projectPath: string; prompt: string | null; provider: LL
 
   const flagIndex = args.indexOf("--project");
   if (flagIndex === -1 || !args[flagIndex + 1]) {
-    console.error("Usage: bun run agent.ts --project <path> [--local] [--verbose] [\"<prompt>\"]");
+    console.error('Usage: bun run agent.ts --project <path> [--local] [--verbose] ["<prompt>"]');
     process.exit(1);
   }
 
@@ -42,7 +42,7 @@ async function runTurn(
   skills: Skill[],
   projectPath: string,
   provider: LLMProvider,
-  verbose: boolean
+  verbose: boolean,
 ): Promise<void> {
   let allowedTools: string[] | null = null;
 
@@ -114,12 +114,9 @@ async function run(
   skills: Skill[],
   projectPath: string,
   provider: LLMProvider,
-  verbose: boolean
+  verbose: boolean,
 ): Promise<void> {
-  const messages: Message[] = [
-    buildSystem(skills, projectPath),
-    { role: "user", content: userPrompt },
-  ];
+  const messages: Message[] = [buildSystem(skills, projectPath), { role: "user", content: userPrompt }];
   await runTurn(messages, skills, projectPath, provider, verbose);
 }
 
@@ -127,7 +124,7 @@ async function runInteractive(
   skills: Skill[],
   projectPath: string,
   provider: LLMProvider,
-  verbose: boolean
+  verbose: boolean,
 ): Promise<void> {
   const messages: Message[] = [buildSystem(skills, projectPath)];
 

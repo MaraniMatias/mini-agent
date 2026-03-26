@@ -54,7 +54,7 @@ export const tools: ToolDefinition[] = [
     },
   },
   {
-    name: "WebSearch",
+    name: "web_search",
     description: "Search Wikipedia and return the summary of the top matching article",
     params: { query: "search query string" },
     returns: "article title, plain-text summary, and source URL",
@@ -63,10 +63,10 @@ export const tools: ToolDefinition[] = [
 
       // 1. Find the best matching article title
       const searchRes = await fetch(
-        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${query}&format=json&utf8=1&srlimit=1`
+        `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${query}&format=json&utf8=1&srlimit=1`,
       );
       if (!searchRes.ok) return `Wikipedia search failed: ${searchRes.status}`;
-      const searchData = await searchRes.json() as { query: { search: { title: string }[] } };
+      const searchData = (await searchRes.json()) as { query: { search: { title: string }[] } };
       const hit = searchData.query?.search?.[0];
       if (!hit) return `No Wikipedia results for: ${params.query}`;
 
@@ -74,7 +74,11 @@ export const tools: ToolDefinition[] = [
       const title = encodeURIComponent(hit.title.replace(/ /g, "_"));
       const summaryRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
       if (!summaryRes.ok) return `Wikipedia summary fetch failed: ${summaryRes.status}`;
-      const summary = await summaryRes.json() as { title: string; extract: string; content_urls: { desktop: { page: string } } };
+      const summary = (await summaryRes.json()) as {
+        title: string;
+        extract: string;
+        content_urls: { desktop: { page: string } };
+      };
 
       return `# ${summary.title}\n\n${summary.extract}\n\nSource: ${summary.content_urls?.desktop?.page ?? ""}`;
     },
@@ -83,7 +87,7 @@ export const tools: ToolDefinition[] = [
 
 export async function handleTool(
   tool: { name: string; params: Record<string, string> },
-  projectPath: string
+  projectPath: string,
 ): Promise<string> {
   const def = tools.find((t) => t.name === tool.name);
   if (!def) return `Unknown tool: ${tool.name}`;

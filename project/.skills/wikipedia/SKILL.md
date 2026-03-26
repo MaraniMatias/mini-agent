@@ -2,7 +2,7 @@
 name: wikipedia
 description: "Search Wikipedia to look up facts, definitions, or background information on any topic"
 tools:
-  - WebSearch
+  - web_search
 ---
 
 Use the WebSearch tool to look up information on Wikipedia.

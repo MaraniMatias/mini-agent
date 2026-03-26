@@ -4,6 +4,7 @@ Your working directory is: {{projectPath}}
 All file paths are relative to that directory.
 
 {{agentMd}}
+
 ## Tools
 
 You have access to the following tools. To call a tool, emit only the tool tag — no other text.
