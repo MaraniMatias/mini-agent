@@ -45,6 +45,8 @@ async function run(
     { role: "user", content: userPrompt },
   ];
 
+  let allowedTools: string[] | null = null;
+
   while (true) {
     const reply = await chat(messages, provider);
     console.log("\n[model]:", reply);
@@ -63,18 +65,27 @@ async function run(
     const skillName = extractSkillCall(reply);
     if (skillName) {
       const skill = skills.find((s) => s.name === skillName);
-      const skillContent = skill
-        ? `<[skill_result] name="${skillName}">\n${skill.content}\n</[skill_result]>`
-        : `<[skill_result] name="${skillName}">Skill not found.</[skill_result]>`;
-      console.log(`[skill]: ${skillName}`);
+      allowedTools = skill?.tools ?? null;
+
+      let body = skill ? skill.content : "Skill not found.";
+      if (skill?.tools) body = `[Available tools: ${skill.tools.join(", ")}]\n${body}`;
+
+      console.log(`[skill]: ${skillName}${allowedTools ? ` (tools: ${allowedTools.join(", ")})` : ""}`);
       messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: skillContent });
+      messages.push({ role: "user", content: `<[skill_result] name="${skillName}">\n${body}\n</[skill_result]>` });
       continue;
     }
 
     // tool call
     const tool = extractTool(reply);
     if (tool) {
+      if (allowedTools !== null && !allowedTools.includes(tool.name)) {
+        const err = `Tool "${tool.name}" is not allowed in this skill context. Allowed: ${allowedTools.join(", ")}`;
+        console.log(`[tool blocked]: ${tool.name}`);
+        messages.push({ role: "assistant", content: reply });
+        messages.push({ role: "user", content: `<[tool_result]>${err}</[tool_result]>` });
+        continue;
+      }
       console.log(`[tool]: ${tool.name}`, tool.params);
       const result = await handleTool(tool, projectPath);
       console.log(`[tool result]: ${result}`);

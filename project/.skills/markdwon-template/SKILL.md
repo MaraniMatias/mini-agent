@@ -1,6 +1,7 @@
 ---
 name: markdown-template
 description: "Writes beautiful Markdown docs with proper headings, tables and code blocks"
+tool: [write_file]
 ---
 
 Always use ATX headings. Tables for comparisons. Fenced code blocks with language hint.

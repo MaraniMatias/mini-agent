@@ -1,7 +1,17 @@
 import type { Skill } from "./skills.ts";
 import type { Message } from "./llm.ts";
+import { tools } from "./tools.ts";
 
 export function buildSystem(skills: Skill[], projectPath: string): Message {
+  const toolsSection = tools
+    .map((t) => {
+      const attrs = Object.entries(t.params)
+        .map(([key, hint]) => `${key}="<${hint}>"`)
+        .join(" ");
+      return `<[tool] name="${t.name}" ${attrs}/>`;
+    })
+    .join("\n");
+
   const skillsSection =
     skills.length === 0
       ? "No skills available."
@@ -17,9 +27,7 @@ All file paths are relative to that directory.
 
 ## Tools
 
-<[tool] name="read_file" path="<path>"/>
-<[tool] name="write_file" path="<path>" content="<content>"/>
-<[tool] name="list_files" path="<dir>" pattern="<glob>"/>
+${toolsSection}
 
 ## Skills
 

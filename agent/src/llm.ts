@@ -11,7 +11,7 @@ async function chatAnthropic(messages: Message[]): Promise<string> {
 
   const response = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL,
-    max_tokens: 64000,
+    max_tokens: 4096,
     system,
     messages: rest,
   });
