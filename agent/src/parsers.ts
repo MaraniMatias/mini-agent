@@ -25,7 +25,7 @@ export function extractTool(text: string): { name: string; params: Record<string
 }
 
 export function extractSkillCall(text: string): string | null {
-  const regex = /<\[skill\] name="([^"]+)"\/?>/;
+  const regex = /<\[skill\] name="([^"]+)"[^>]*\/?>/;
   const match = text.match(regex);
   return match ? match[1] : null;
 }

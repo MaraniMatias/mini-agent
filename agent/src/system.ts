@@ -1,6 +1,10 @@
 import type { Skill } from "./skills.ts";
 import type { Message } from "./llm.ts";
 import { tools } from "./tools.ts";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+const SYSTEM_PROMPT_PATH = resolve(import.meta.dirname, "../SYSTEM_PROMPT.md");
 
 export function buildSystem(skills: Skill[], projectPath: string): Message {
   const toolsSection = tools
@@ -17,35 +21,11 @@ export function buildSystem(skills: Skill[], projectPath: string): Message {
       ? "No skills available."
       : skills.map((s) => `- **${s.name}**: ${s.description}`).join("\n");
 
-  return {
-    role: "system",
-    content: `You are an experienced developer who writes clean, well-structured files.
-You excel at beautiful Markdown documentation and simple, readable JavaScript scripts for Node.js.
+  const template = readFileSync(SYSTEM_PROMPT_PATH, "utf-8");
+  const content = template
+    .replace("{{projectPath}}", projectPath)
+    .replace("{{tools}}", toolsSection)
+    .replace("{{skills}}", skillsSection);
 
-Your working directory is: ${projectPath}
-All file paths are relative to that directory.
-
-## Tools
-
-${toolsSection}
-
-## Skills
-
-When you need a skill, emit a self-closing skill tag and nothing else:
-<[skill] name="<skill-name>"/>
-
-Available skills:
-${skillsSection}
-
-## Output format
-
-- Tool call: emit only the tool tag.
-- Skill call: emit only the skill tag.
-- Final file:
-<[code]>
-{"filename": "<name>", "content": "<file content>"}
-</[code]>
-
-One action per response. No extra text outside the tags.`,
-  };
+  return { role: "system", content };
 }

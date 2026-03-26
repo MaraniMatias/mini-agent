@@ -11,12 +11,12 @@ async function chatAnthropic(messages: Message[], verbose = false): Promise<stri
 
   if (verbose) {
     console.log("\n┌─── [verbose] request ─────────────────────────────");
-    console.log(`│ provider: anthropic  model: ${process.env.ANTHROPIC_MODEL}`);
+    console.log(`│ [provider] anthropic ${process.env.ANTHROPIC_MODEL}`);
     console.log(`│ messages: ${messages.length}`);
     for (const [i, m] of messages.entries()) {
       console.log(`│`);
       console.log(`│ [${i}] ${m.role} (${m.content.length} chars)`);
-      console.log(`│ ${m.content.slice(0, 300).replace(/\n/g, "\n│ ")}${m.content.length > 300 ? "\n│ ..." : ""}`);
+      console.log(`│ ${m.content.replace(/\n/g, "\n│ ")}`);
     }
     console.log("└───────────────────────────────────────────────────\n");
   }
@@ -41,7 +41,7 @@ async function chatAnthropic(messages: Message[], verbose = false): Promise<stri
     console.log("\n┌─── [verbose] response ────────────────────────────");
     console.log(`│ input_tokens: ${response.usage.input_tokens}  output_tokens: ${response.usage.output_tokens}`);
     console.log(`│`);
-    console.log(`│ ${textBlock.text.slice(0, 500).replace(/\n/g, "\n│ ")}${textBlock.text.length > 500 ? "\n│ ..." : ""}`);
+    console.log(`│ ${textBlock.text.replace(/\n/g, "\n│ ")}`);
     console.log("└───────────────────────────────────────────────────\n");
   }
 
@@ -51,12 +51,12 @@ async function chatAnthropic(messages: Message[], verbose = false): Promise<stri
 async function chatOllama(messages: Message[], verbose = false): Promise<string> {
   if (verbose) {
     console.log("\n┌─── [verbose] request ─────────────────────────────");
-    console.log(`│ provider: ollama  model: ${process.env.OLLAMA_MODEL}`);
+    console.log(`│ [provider] ollama ${process.env.OLLAMA_MODEL}`);
     console.log(`│ messages: ${messages.length}`);
     for (const [i, m] of messages.entries()) {
       console.log(`│`);
       console.log(`│ [${i}] ${m.role} (${m.content.length} chars)`);
-      console.log(`│ ${m.content.slice(0, 300).replace(/\n/g, "\n│ ")}${m.content.length > 300 ? "\n│ ..." : ""}`);
+      console.log(`│ ${m.content.replace(/\n/g, "\n│ ")}`);
     }
     console.log("└───────────────────────────────────────────────────\n");
   }
@@ -76,7 +76,7 @@ async function chatOllama(messages: Message[], verbose = false): Promise<string>
     console.log("\n┌─── [verbose] response ────────────────────────────");
     console.log(`│ eval_count: ${data.eval_count ?? "?"}  prompt_eval_count: ${data.prompt_eval_count ?? "?"}`);
     console.log(`│`);
-    console.log(`│ ${raw.slice(0, 500).replace(/\n/g, "\n│ ")}${raw.length > 500 ? "\n│ ..." : ""}`);
+    console.log(`│ ${raw.replace(/\n/g, "\n│ ")}`);
     console.log("└───────────────────────────────────────────────────\n");
   }
 
