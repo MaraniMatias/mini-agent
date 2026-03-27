@@ -189,13 +189,18 @@ Drop an `AGENTS.md` file in the project root to give the agent persistent contex
 ```
 mini-agent/
   agent/
-    index.ts          ← CLI entry point, agent loop
+    index.ts          ← thin CLI entry point (banner, dispatch)
     src/
+      types.ts        ← all shared types (Message, Skill, ToolDefinition, etc.)
+      constants.ts    ← configuration constants (MAX_FAILURES, MAX_ITERATIONS, etc.)
+      cli.ts          ← parseArgs, run, runInteractive
+      loop.ts         ← runTurn + deduplication helpers
       llm.ts          ← Anthropic + Ollama chat wrappers
       tools.ts        ← ToolDefinition array + handleTool
       skills.ts       ← loadSkills (reads .skills/*/SKILL.md)
       system.ts       ← buildSystem (generates system prompt)
       parsers.ts      ← extractTag / extractTool / extractSkillCall
+      log.ts          ← colored labels + verbose logging
   project/            ← example project the agent works on
     .skills/
     AGENTS.md

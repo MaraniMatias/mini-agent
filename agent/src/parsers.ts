@@ -1,4 +1,5 @@
 // Parsers for extracting tags, tools, and skill calls from LLM responses
+import type { MalformedToolResult } from "./types.ts";
 
 export function extractTag(text: string, tagName: string): string | null {
   const regex = new RegExp(`<\\[${tagName}\\]>([\\s\\S]*?)<\\[/${tagName}\\]>`);
@@ -57,11 +58,6 @@ export function extractSkillCall(text: string): string | null {
   if (!match) return null;
   return match[1] ?? match[2] ?? match[3];
 }
-
-export type MalformedToolResult = {
-  name: string | null; // tool name if extractable, null otherwise
-  reason: string; // what went wrong
-};
 
 export function detectMalformedTool(text: string): MalformedToolResult | null {
   // Only fire if there's clear tool-call intent

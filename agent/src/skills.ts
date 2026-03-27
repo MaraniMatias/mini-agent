@@ -1,11 +1,5 @@
 import { readFileSync } from "fs";
-
-export type Skill = {
-  name: string;
-  description: string;
-  content: string;
-  tools?: string[]; // if set, only these tools are available when the skill is active
-};
+import type { Skill } from "./types.ts";
 
 export function loadSkills(projectPath: string): Skill[] {
   const skillsDir = `${projectPath}/.skills`;

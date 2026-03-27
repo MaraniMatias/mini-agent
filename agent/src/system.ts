@@ -1,5 +1,4 @@
-import type { Skill } from "./skills.ts";
-import type { Message, LLMProvider } from "./llm.ts";
+import type { Skill, Message, LLMProvider } from "./types.ts";
 import { tools } from "./tools.ts";
 import { readFileSync, existsSync } from "fs";
 import { resolve } from "path";

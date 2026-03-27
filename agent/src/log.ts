@@ -1,4 +1,5 @@
-import { contentAsText, type Message } from "./llm.ts";
+import { contentAsText } from "./llm.ts";
+import type { Message } from "./types.ts";
 
 const c = {
   reset: "\x1b[0m",

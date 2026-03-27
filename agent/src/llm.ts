@@ -1,20 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { logRequest, logResponse } from "./log.ts";
-import type { ToolDefinition } from "./tools.ts";
-
-export type ToolUseBlock = { type: "tool_use"; id: string; name: string; input: Record<string, unknown> };
-export type ToolResultBlock = { type: "tool_result"; tool_use_id: string; content: string };
-export type TextBlock = { type: "text"; text: string };
-export type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock;
-
-export type Message = {
-  role: "system" | "user" | "assistant";
-  content: string | ContentBlock[];
-};
-
-export type LLMProvider = "anthropic" | "ollama";
-
-export type ChatResult = { type: "text"; text: string } | { type: "tool_use"; block: ToolUseBlock };
+import { ANTHROPIC_MAX_TOKENS } from "./constants.ts";
+import type { ToolDefinition, Message, LLMProvider, ChatResult, ContentBlock } from "./types.ts";
 
 export function contentAsText(content: string | ContentBlock[]): string {
   if (typeof content === "string") return content;
@@ -55,7 +42,7 @@ async function chatAnthropic(messages: Message[], toolDefs: ToolDefinition[], ve
 
   const response = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL,
-    max_tokens: 4096,
+    max_tokens: ANTHROPIC_MAX_TOKENS,
     system: systemText,
     messages: rest,
     ...(toolDefs.length > 0 ? { tools: toolDefs.map(toAnthropicTool) } : {}),

@@ -1,5 +1,6 @@
 import { stat } from "fs/promises";
 import { join } from "path";
+import type { ToolDefinition } from "./types.ts";
 
 function resolve(p: string, projectPath: string): string {
   return p.startsWith("/") ? p : `${projectPath}/${p}`;
@@ -10,14 +11,6 @@ function formatSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-
-export type ToolDefinition = {
-  name: string;
-  description: string;
-  params: Record<string, string>; // key -> description
-  returns: string;
-  execute: (params: Record<string, string>, projectPath: string) => Promise<string>;
-};
 
 export const tools: ToolDefinition[] = [
   {
