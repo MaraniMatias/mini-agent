@@ -12,13 +12,18 @@ export function buildSystem(skills: Skill[], projectPath: string, provider: LLMP
       ? ""
       : tools
           .map((t) => {
+            const hasContent = "content" in t.params;
             const attrs = Object.entries(t.params)
+              .filter(([key]) => key !== "content")
               .map(([key]) => `${key}="<${key}>"`)
               .join(" ");
             const paramLines = Object.entries(t.params)
               .map(([key, desc]) => `  - \`${key}\`: ${desc}`)
               .join("\n");
-            return `### ${t.name}\n${t.description}\n${paramLines}\nReturns: ${t.returns}\n\`<[tool] name="${t.name}" ${attrs}/>\``;
+            const example = hasContent
+              ? `\`\`\`\n<[tool] name="${t.name}" ${attrs}>\n<content>\n</[tool]>\n\`\`\``
+              : `\`<[tool] name="${t.name}" ${attrs}/>\``;
+            return `### ${t.name}\n${t.description}\n${paramLines}\nReturns: ${t.returns}\n${example}`;
           })
           .join("\n\n");
 

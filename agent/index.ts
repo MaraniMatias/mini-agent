@@ -1,7 +1,7 @@
 import { chat, type Message, type ChatResult, type LLMProvider } from "./src/llm.ts";
 import { loadSkills, type Skill } from "./src/skills.ts";
 import { buildSystem } from "./src/system.ts";
-import { extractTag, extractTool, extractSkillCall } from "./src/parsers.ts";
+import { extractTag, extractTool, extractSkillCall, detectMalformedTool } from "./src/parsers.ts";
 import { handleTool, tools } from "./src/tools.ts";
 import { logSkill, logToolCall, logToolResult, label } from "./src/log.ts";
 import { resolve } from "path";
@@ -179,6 +179,21 @@ async function runTurn(
         }
       } else {
         failures = 0;
+      }
+      continue;
+    }
+
+    // malformed tool call detection
+    const malformed = detectMalformedTool(reply);
+    if (malformed) {
+      const namePart = malformed.name ? ` ("${malformed.name}")` : "";
+      const errorMsg = `Tool call syntax error${namePart}: ${malformed.reason}. Correct format: <[tool] name="tool_name" param="value"/>`;
+      console.log(label.error(`malformed tool call${namePart}`));
+      messages.push({ role: "assistant", content: reply });
+      messages.push({ role: "user", content: `<[tool_result]>${errorMsg}</[tool_result]>` });
+      if (++failures >= MAX_FAILURES) {
+        messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
+        break;
       }
       continue;
     }

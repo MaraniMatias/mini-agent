@@ -7,7 +7,24 @@ export function extractTag(text: string, tagName: string): string | null {
 }
 
 export function extractTool(text: string): { name: string; params: Record<string, string> } | null {
-  // Accept:
+  // Body-content form: <[tool] name="write_file" path="README.md">\ncontent\n</[tool]>
+  // Supports real newlines — the text between tags becomes the `content` param.
+  const bodyMatch = text.match(/<\[tool\]\s+name="([^"]+)"([^>]*)>\n?([\s\S]*?)<\/\[tool\]>/);
+  if (bodyMatch) {
+    const name = bodyMatch[1];
+    const paramsStr = bodyMatch[2];
+    const body = bodyMatch[3];
+    const params: Record<string, string> = {};
+    const paramRegex = /(\w+)="([^"]*)"/g;
+    let paramMatch;
+    while ((paramMatch = paramRegex.exec(paramsStr)) !== null) {
+      params[paramMatch[1]] = paramMatch[2];
+    }
+    params.content = body;
+    return { name, params };
+  }
+
+  // Self-closing forms:
   //   canonical:  <[tool] name="write_file" path="..." content="..."/>
   //   malformed:  <tool name="write_file" .../> or <tool> name="write_file" .../>
   //   tag-as-name: <write_file path="..." content="..."/>
@@ -37,4 +54,42 @@ export function extractSkillCall(text: string): string | null {
   const match = text.match(regex);
   if (!match) return null;
   return match[1] ?? match[2];
+}
+
+export type MalformedToolResult = {
+  name: string | null;  // tool name if extractable, null otherwise
+  reason: string;       // what went wrong
+};
+
+export function detectMalformedTool(text: string): MalformedToolResult | null {
+  // Only fire if there's clear tool-call intent
+  if (!/<\[tool\][\s]|<tool[\s>]/.test(text)) return null;
+
+  // Well-formed canonical tag: all attribute values properly quoted and self-closed
+  if (/<\[tool\]\s+(?:\w+="[^"]*"\s*)*\/>/.test(text)) return null;
+
+  // Try to extract the name (permissive — stop at space, quote, or >)
+  const nameMatch = text.match(/(?:<\[tool\]|<tool[\s>])\s*name="([^"\s>]+)/);
+  const name = nameMatch?.[1] ?? null;
+
+  // 1. Unescaped " inside a value: strip well-formed key="value" pairs; leftover " means embedded quotes
+  const attrRegion = text.match(/<\[tool\]([\s\S]*?)(?:\/?>|$)/)?.[1] ?? "";
+  const stripped = attrRegion.replace(/\s*\w+="[^"]*"/g, "").replace(/\s/g, "");
+  if (stripped.includes('"')) {
+    return { name, reason: 'attribute value contains unescaped `"` — values must not contain raw double quotes' };
+  }
+
+  // 2. Tag not self-closed with />
+  const tagChunk = text.match(/<\[tool\][^>]*>?/)?.[0] ?? "";
+  if (!tagChunk.endsWith("/>") && !text.includes("/>")) {
+    return { name, reason: "tag is not self-closed — add `/>` at the end: `<[tool] name=\"...\" param=\"value\"/>`" };
+  }
+
+  // 3. <tool without brackets
+  if (/<tool[\s>]/.test(text) && !/<\[tool\]/.test(text)) {
+    return { name, reason: "missing bracket syntax — use `<[tool]` not `<tool>`" };
+  }
+
+  // Generic fallback
+  return { name, reason: "malformed attribute syntax — check that all values are quoted and the tag ends with `/>`" };
 }

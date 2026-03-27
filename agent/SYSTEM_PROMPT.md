@@ -22,13 +22,14 @@ Skills give you additional instructions for specific tasks. When you need one, e
 After invoking a skill you will receive its instructions and can proceed accordingly.
 
 Available skills:
+
 {{skills}}
 
 ## Tag Format — CRITICAL
 
 The brackets `[` and `]` are **required**. Tags without them are invalid and will not be parsed.
 
-WRONG — missing brackets:
+DON'T— missing brackets:
 
 ```
 <tool name="read_file" path="foo.ts"/>
@@ -38,17 +39,28 @@ WRONG — missing brackets:
 <skill> name="js-utils"/>
 ```
 
-WRONG — extra text around the tag:
+DON'T — extra text around the tag:
 
 ```
 I'll read the file: `<[tool] name="read_file" path="foo.ts"/>`
 ```
 
-RIGHT:
+DO IT — simple params (self-closing):
+```
 <[tool] name="read_file" path="foo.ts"/>
 <[skill] name="js-utils"/>
+```
 
-For files with multi-line content, use the `<[code]>` output block — do NOT use `write_file` for multi-line content.
+DO IT — multi-line content (body form):
+```
+<[tool] name="write_file" path="README.md">
+# Actual content with real newlines
+
+Second paragraph — no need to escape \n.
+</[tool]>
+```
+
+Use the body form whenever `content` contains newlines. For single-line values, the self-closing form is fine.
 
 ## Behavior
 

@@ -37,7 +37,9 @@ export const tools: ToolDefinition[] = [
     params: { path: "relative or absolute file path", content: "full file content to write" },
     returns: "confirmation message with the path written",
     execute: async (params, projectPath) => {
-      await Bun.write(resolve(params.path, projectPath), params.content ?? "");
+      // Unescape \n sequences from attribute-based calls (body-content form already has real newlines)
+      const content = (params.content ?? "").replace(/\\n/g, "\n");
+      await Bun.write(resolve(params.path, projectPath), content);
       return `File written: ${params.path}`;
     },
   },

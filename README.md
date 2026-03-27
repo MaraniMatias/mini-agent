@@ -69,10 +69,13 @@ Each turn the model emits exactly one of:
 | Output                                             | What happens                                        |
 | -------------------------------------------------- | --------------------------------------------------- |
 | `<[tool] name="..." .../>`                         | Tool executes, result fed back as `<[tool_result]>` |
+| `<[tool] name="...">body</[tool]>`                 | Same, with `body` as the `content` param (supports real newlines) |
 | `<[skill] name="..."/>`                            | Skill content injected as `<[skill_result]>`        |
 | `<[code]>{"filename":..., "content":...}</[code]>` | File written to disk, loop ends                     |
 
 The loop runs until a `<[code]>` block is produced or the model returns plain text with no recognized tag.
+
+If the model emits a tag that looks like a tool call but fails to parse (e.g. unescaped `"` inside an attribute value, missing `/>` terminator, or `<tool>` instead of `<[tool]>`), the agent detects the malformed syntax, logs `error: malformed tool call`, and feeds back a structured `<[tool_result]>` error so the model can retry with correct syntax. This counts toward the `MAX_FAILURES` ceiling (5 consecutive failures → loop stops).
 
 ## Built-in tools
 
