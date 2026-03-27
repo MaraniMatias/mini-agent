@@ -137,7 +137,7 @@ async function runTurn(
         console.log(label.skill(skillName));
         if (verbose) logSkill(skillName, allowedTools, body);
         messages.push({ role: "assistant", content: reply });
-        messages.push({ role: "user", content: `<[skill_result] name="${skillName}">\n${body}\n</[skill_result]>` });
+        messages.push({ role: "user", content: `<skill_result name="${skillName}">\n${body}\n</skill_result>` });
         continue;
       }
       // skill name not found — fall through to tool check
@@ -150,7 +150,7 @@ async function runTurn(
         const err = `Tool "${tool.name}" is not allowed in this skill context. Allowed: ${allowedTools.join(", ")}`;
         console.log(label.blocked(tool.name));
         messages.push({ role: "assistant", content: reply });
-        messages.push({ role: "user", content: `<[tool_result]>${err}</[tool_result]>` });
+        messages.push({ role: "user", content: `<tool_result>${err}</tool_result>` });
         continue;
       }
       console.log(label.tool(tool.name));
@@ -170,7 +170,7 @@ async function runTurn(
       }
 
       messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: `<[tool_result]>${toolResult}</[tool_result]>` });
+      messages.push({ role: "user", content: `<tool_result>${toolResult}</tool_result>` });
 
       if (toolResult.startsWith("Error:") || toolResult.startsWith("Unknown tool:")) {
         if (++failures >= MAX_FAILURES) {
@@ -187,10 +187,10 @@ async function runTurn(
     const malformed = detectMalformedTool(reply);
     if (malformed) {
       const namePart = malformed.name ? ` ("${malformed.name}")` : "";
-      const errorMsg = `Tool call syntax error${namePart}: ${malformed.reason}. Correct format: <[tool] name="tool_name" param="value"/>`;
+      const errorMsg = `Tool call syntax error${namePart}: ${malformed.reason}. Correct format: <tool name="tool_name" param="value"/>`;
       console.log(label.error(`malformed tool call${namePart}`));
       messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: `<[tool_result]>${errorMsg}</[tool_result]>` });
+      messages.push({ role: "user", content: `<tool_result>${errorMsg}</tool_result>` });
       if (++failures >= MAX_FAILURES) {
         messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
         break;

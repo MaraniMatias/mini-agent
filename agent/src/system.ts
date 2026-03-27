@@ -21,8 +21,8 @@ export function buildSystem(skills: Skill[], projectPath: string, provider: LLMP
               .map(([key, desc]) => `  - \`${key}\`: ${desc}`)
               .join("\n");
             const example = hasContent
-              ? `\`\`\`\n<[tool] name="${t.name}" ${attrs}>\n<content>\n</[tool]>\n\`\`\``
-              : `\`<[tool] name="${t.name}" ${attrs}/>\``;
+              ? `\`\`\`\n<tool name="${t.name}" ${attrs}>\n<content>\n</tool>\n\`\`\``
+              : `\`<tool name="${t.name}" ${attrs}/>\``;
             return `### ${t.name}\n${t.description}\n${paramLines}\nReturns: ${t.returns}\n${example}`;
           })
           .join("\n\n");

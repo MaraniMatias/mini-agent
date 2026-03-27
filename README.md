@@ -66,16 +66,16 @@ you: exit
 
 Each turn the model emits exactly one of:
 
-| Output                                             | What happens                                        |
-| -------------------------------------------------- | --------------------------------------------------- |
-| `<[tool] name="..." .../>`                         | Tool executes, result fed back as `<[tool_result]>` |
-| `<[tool] name="...">body</[tool]>`                 | Same, with `body` as the `content` param (supports real newlines) |
-| `<[skill] name="..."/>`                            | Skill content injected as `<[skill_result]>`        |
-| `<[code]>{"filename":..., "content":...}</[code]>` | File written to disk, loop ends                     |
+| Output                                             | What happens                                                      |
+| -------------------------------------------------- | ----------------------------------------------------------------- |
+| `<tool name="..." .../>`                           | Tool executes, result fed back as `<tool_result>`                 |
+| `<tool name="...">body</tool>`                     | Same, with `body` as the `content` param (supports real newlines) |
+| `<skill name="..."/>`                              | Skill content injected as `<skill_result>`                        |
+| `<[code]>{"filename":..., "content":...}</[code]>` | File written to disk, loop ends                                   |
 
 The loop runs until a `<[code]>` block is produced or the model returns plain text with no recognized tag.
 
-If the model emits a tag that looks like a tool call but fails to parse (e.g. unescaped `"` inside an attribute value, missing `/>` terminator, or `<tool>` instead of `<[tool]>`), the agent detects the malformed syntax, logs `error: malformed tool call`, and feeds back a structured `<[tool_result]>` error so the model can retry with correct syntax. This counts toward the `MAX_FAILURES` ceiling (5 consecutive failures → loop stops).
+If the model emits a tag that looks like a tool call but fails to parse (e.g. unescaped `"` inside an attribute value, or missing `/>` terminator), the agent detects the malformed syntax, logs `error: malformed tool call`, and feeds back a structured `<tool_result>` error so the model can retry with correct syntax. This counts toward the `MAX_FAILURES` ceiling (5 consecutive failures → loop stops).
 
 ## Built-in tools
 
@@ -140,7 +140,7 @@ Keep tone technical but approachable. Include a TL;DR at the top.
 
 **`tools` — restricting tool access per skill**
 
-When `tools` is set, the agent enforces it: any tool call outside the list is blocked and the model receives an error explaining which tools are allowed. The model also sees the allowed list at the top of the `<[skill_result]>` message.
+When `tools` is set, the agent enforces it: any tool call outside the list is blocked and the model receives an error explaining which tools are allowed. The model also sees the allowed list at the top of the `<skill_result>` message.
 
 Both YAML array formats are supported:
 
@@ -161,15 +161,15 @@ Omit `tools` entirely to leave all tools unrestricted.
 The model sees all available skills listed in the system prompt. When it needs one it emits:
 
 ```
-<[skill] name="markdown-template"/>
+<skill name="markdown-template"/>
 ```
 
 The agent injects the skill body back:
 
 ```
-<[skill_result] name="markdown-template">
+<skill_result name="markdown-template">
 Always use ATX headings...
-</[skill_result]>
+</skill_result>
 ```
 
 The model then continues with that context.
