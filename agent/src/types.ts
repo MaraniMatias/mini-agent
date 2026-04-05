@@ -7,7 +7,7 @@ export type TextBlock = { type: "text"; text: string };
 export type ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock;
 
 export type Message = {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "tool";
   content: string | ContentBlock[];
 };
 

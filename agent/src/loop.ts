@@ -82,7 +82,7 @@ export async function runTurn(
       const blocked = checkAllowed(block.name, state.allowedTools);
       if (blocked) {
         console.log(label.blocked(block.name));
-        messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: block.id, content: blocked }] });
+        messages.push({ role: "tool", content: [{ type: "tool_result", tool_use_id: block.id, content: blocked }] });
         continue;
       }
 
@@ -95,7 +95,7 @@ export async function runTurn(
       const callKey = `${block.name}|${JSON.stringify(params)}`;
       toolResult += trackRepeatedCall(callKey, state);
 
-      messages.push({ role: "user", content: [{ type: "tool_result", tool_use_id: block.id, content: toolResult }] });
+      messages.push({ role: "tool", content: [{ type: "tool_result", tool_use_id: block.id, content: toolResult }] });
 
       if (trackFailure(toolResult, state)) {
         messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
@@ -143,7 +143,7 @@ export async function runTurn(
       if (blocked) {
         console.log(label.blocked(tool.name));
         messages.push({ role: "assistant", content: reply });
-        messages.push({ role: "user", content: `<tool_result>${blocked}</tool_result>` });
+        messages.push({ role: "tool", content: `<tool_result>${blocked}</tool_result>` });
         continue;
       }
       console.log(label.tool(tool.name));
@@ -155,7 +155,7 @@ export async function runTurn(
       toolResult += trackRepeatedCall(callKey, state);
 
       messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: `<tool_result>${toolResult}</tool_result>` });
+      messages.push({ role: "tool", content: `<tool_result>${toolResult}</tool_result>` });
 
       if (trackFailure(toolResult, state)) {
         messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
@@ -171,7 +171,7 @@ export async function runTurn(
       const errorMsg = `Tool call syntax error${namePart}: ${malformed.reason}. Correct format: <tool name="tool_name" param="value"/>`;
       console.log(label.error(`malformed tool call${namePart}`));
       messages.push({ role: "assistant", content: reply });
-      messages.push({ role: "user", content: `<tool_result>${errorMsg}</tool_result>` });
+      messages.push({ role: "tool", content: `<tool_result>${errorMsg}</tool_result>` });
       if (trackFailure("Error: malformed", state)) {
         messages.push({ role: "user", content: `Stopped after ${MAX_FAILURES} consecutive tool failures.` });
         break;

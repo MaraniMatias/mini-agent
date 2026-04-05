@@ -34,7 +34,7 @@ async function chatAnthropic(messages: Message[], toolDefs: ToolDefinition[], ve
   const rest = messages
     .filter((m) => m.role !== "system")
     .map((m) => ({
-      role: m.role as "user" | "assistant",
+      role: (m.role === "tool" ? "user" : m.role) as "user" | "assistant",
       content: m.content as any,
     }));
 

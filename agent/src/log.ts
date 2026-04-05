@@ -8,6 +8,7 @@ const c = {
   system: "\x1b[36m", // cyan
   user: "\x1b[32m", // green
   assistant: "\x1b[33m", // yellow
+  tool: "\x1b[34m", // blue — tool result messages
   model: "\x1b[97m", // bright white
   label: "\x1b[35m", // magenta  — [tool], [skill], [written]
   meta: "\x1b[2m", // dim gray — verbose metadata lines
